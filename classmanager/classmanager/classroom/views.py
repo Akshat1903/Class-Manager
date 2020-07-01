@@ -18,6 +18,8 @@ from classroom.models import StudentsInClass,StudentMarks,ClassAssignment,Submit
 from django.contrib.auth.forms import PasswordChangeForm
 from django.db.models import Q
 
+### SignUp SignIn and Login views
+# For teacher Sin up
 def TeacherSignUp(request):
     user_type = 'teacher'
     registered = False
@@ -45,6 +47,7 @@ def TeacherSignUp(request):
 
     return render(request,'classroom/teacher_signup.html',{'user_form':user_form,'teacher_profile_form':teacher_profile_form,'registered':registered,'user_type':user_type})
 
+#For Student Sign up  
 def StudentSignUp(request):
     user_type = 'student'
     registered = False
@@ -72,9 +75,11 @@ def StudentSignUp(request):
 
     return render(request,'classroom/student_signup.html',{'user_form':user_form,'student_profile_form':student_profile_form,'registered':registered,'user_type':user_type})
 
+## View to land on signup page and then user will be asked to whether to signup as student or a teacher   
 def SignUp(request):
     return render(request,'classroom/signup.html',{})
 
+## User login
 def user_login(request):
     if request.method == "POST":
         username = request.POST.get('username')
@@ -96,21 +101,28 @@ def user_login(request):
     else:
         return render(request,'classroom/login.html',{})
 
+## User logout
 @login_required
 def user_logout(request):
     logout(request)
     return HttpResponseRedirect(reverse('home'))
+  
+########################################################################################
+## Profile detail and update views
 
+## Student profile detail (class based views)
 class StudentDetailView(LoginRequiredMixin,DetailView):
     context_object_name = "student"
     model = models.Student
     template_name = 'classroom/student_detail_page.html'
 
+## Teacher profile detail (class based views)    
 class TeacherDetailView(LoginRequiredMixin,DetailView):
     context_object_name = "teacher"
     model = models.Teacher
     template_name = 'classroom/teacher_detail_page.html'
 
+## Student profile edit     
 @login_required
 def StudentUpdateView(request,pk):
     profile_updated = False
@@ -127,6 +139,7 @@ def StudentUpdateView(request,pk):
         form = StudentProfileUpdateForm(request.POST or None,instance=student)
     return render(request,'classroom/student_update_page.html',{'profile_updated':profile_updated,'form':form})
 
+## Teacher profile edit  
 @login_required
 def TeacherUpdateView(request,pk):
     profile_updated = False
@@ -144,6 +157,7 @@ def TeacherUpdateView(request,pk):
         form = TeacherProfileUpdateForm(request.POST or None,instance=teacher)
     return render(request,'classroom/teacher_update_page.html',{'profile_updated':profile_updated,'form':form})
 
+## List of all students that teacher has added to their class
 def class_students_list(request):
     query = request.GET.get("q", None)
     students = StudentsInClass.objects.filter(teacher=request.user.Teacher)
@@ -170,11 +184,13 @@ class ClassStudentsListView(LoginRequiredMixin,DetailView):
     template_name = "classroom/class_students_list.html"
     context_object_name = "teacher"
 
+## Marks give to all students    
 class StudentAllMarksList(LoginRequiredMixin,DetailView):
     model = models.Student
     template_name = "classroom/student_allmarks_list.html"
     context_object_name = "student"
 
+## To grant marks to a student in the class    
 @login_required
 def add_marks(request,pk):
     marks_given = False
@@ -192,6 +208,7 @@ def add_marks(request,pk):
         form = MarksForm()
     return render(request,'classroom/add_marks.html',{'form':form,'student':student,'marks_given':marks_given})
 
+## Edit student's marks  
 @login_required
 def update_marks(request,pk):
     marks_updated = False
@@ -206,6 +223,7 @@ def update_marks(request,pk):
         form = MarksForm(request.POST or None,instance=obj)
     return render(request,'classroom/update_marks.html',{'form':form,'marks_updated':marks_updated})
 
+## Class notice by the teacher (displayed to all the students in the class)  
 @login_required
 def add_notice(request):
     notice_sent = False
@@ -225,6 +243,7 @@ def add_notice(request):
         notice = NoticeForm()
     return render(request,'classroom/write_notice.html',{'notice':notice,'notice_sent':notice_sent})
 
+## Message to the teacher  
 @login_required
 def write_message(request,pk):
     message_sent = False
@@ -242,16 +261,19 @@ def write_message(request,pk):
         form = MessageForm()
     return render(request,'classroom/write_message.html',{'form':form,'teacher':teacher,'message_sent':message_sent})
 
+## List of all messages teacher has recieved   
 @login_required
 def messages_list(request,pk):
     teacher = get_object_or_404(models.Teacher,pk=pk)
     return render(request,'classroom/messages_list.html',{'teacher':teacher})
 
+## List of all notices student has  
 @login_required
 def class_notice(request,pk):
     student = get_object_or_404(models.Student,pk=pk)
     return render(request,'classroom/class_notice_list.html',{'student':student})
 
+## List of all the marks recieved by the student  
 @login_required
 def student_marks_list(request,pk):
     error = True
@@ -260,6 +282,7 @@ def student_marks_list(request,pk):
     given_marks = StudentMarks.objects.filter(teacher=teacher,student=student)
     return render(request,'classroom/student_marks_list.html',{'student':student,'given_marks':given_marks})
 
+## Add students to the class  
 class add_student(LoginRequiredMixin,generic.RedirectView):
 
     def get_redirect_url(self,*args,**kwargs):
@@ -277,10 +300,12 @@ class add_student(LoginRequiredMixin,generic.RedirectView):
 
         return super().get(request,*args,**kwargs)
 
+## Student add conformation      
 @login_required
 def student_added(request):
     return render(request,'classroom/student_added.html',{})
 
+## List of all the students in the class with search option  
 def students_list(request):
     query = request.GET.get("q", None)
     students = StudentsInClass.objects.filter(teacher=request.user.Teacher)
@@ -303,6 +328,7 @@ def students_list(request):
     template = "classroom/students_list.html"
     return render(request, template, context)
 
+## List of all the teachers with search option  
 def teachers_list(request):
     query = request.GET.get("q", None)
     qs = Teacher.objects.all()
@@ -319,6 +345,8 @@ def teachers_list(request):
 
 
 ####################################################
+
+## Upload Assigment by teacher to the students in the class
 @login_required
 def upload_assignment(request):
     assignment_uploaded = False
@@ -337,6 +365,7 @@ def upload_assignment(request):
         form = AssignmentForm()
     return render(request,'classroom/upload_assignment.html',{'form':form,'assignment_uploaded':assignment_uploaded})
 
+## List of the all assignments student has  
 @login_required
 def class_assignment(request):
     student = request.user.Student
@@ -344,11 +373,13 @@ def class_assignment(request):
     assignment_list = [x.submitted_assignment for x in assignment]
     return render(request,'classroom/class_assignment.html',{'student':student,'assignment_list':assignment_list})
 
+## List of all the assignments teacher has uploaded  
 @login_required
 def assignment_list(request):
     teacher = request.user.Teacher
     return render(request,'classroom/assignment_list.html',{'teacher':teacher})
 
+## Edit the assignment given by the teacher  
 @login_required
 def update_assignment(request,id=None):
     obj = get_object_or_404(ClassAssignment, id=id)
@@ -366,6 +397,7 @@ def update_assignment(request,id=None):
     template = "classroom/update_assignment.html"
     return render(request, template, context)
 
+## Delete an assignment   
 @login_required
 def assignment_delete(request, id=None):
     obj = get_object_or_404(ClassAssignment, id=id)
@@ -379,6 +411,7 @@ def assignment_delete(request, id=None):
     template = "classroom/assignment_delete.html"
     return render(request, template, context)
 
+## Submit assignment for student  
 @login_required
 def submit_assignment(request, id=None):
     student = request.user.Student
@@ -397,6 +430,7 @@ def submit_assignment(request, id=None):
         form = SubmitForm()
     return render(request,'classroom/submit_assignment.html',{'form':form,})
 
+ ## List for all teachers to see all the submissions 
 @login_required
 def submit_list(request):
     teacher = request.user.Teacher
@@ -404,6 +438,7 @@ def submit_list(request):
 
 ##################################################################################################
 
+## Change Password view
 @login_required
 def change_password(request):
     if request.method == 'POST':
